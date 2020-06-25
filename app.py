@@ -112,7 +112,7 @@ def add_need():
     db.session.add(new_need)
     db.session.commit()
 
-    return user_schema.jsonify(new_need)
+    return need_schema.jsonify(new_need)
 
 @app.route('/supplies', methods=['POST'])
 def add_supply():
@@ -130,8 +130,26 @@ def add_supply():
     db.session.add(new_supply)
     db.session.commit()
 
-    return user_schema.jsonify(new_supply)
+    return supply_schema.jsonify(new_supply)
 
+# Create GET Endpoints
+@app.route('/users', methods=['GET'])
+def get_users():
+    all_users = Users.query.all()
+    result = users_schema.dump(all_users)
+    return jsonify(result)
+
+@app.route('/needs', methods=['GET'])
+def get_needs():
+    all_needs = Needs.query.all()
+    result = needs_schema.dump(all_needs)
+    return jsonify(result)
+
+@app.route('/supplies', methods=['GET'])
+def get_supplies():
+    all_supplies = Supplies.query.all()
+    result = supplies_schema.dump(all_supplies)
+    return jsonify(result)
 
 # run server
 if __name__ == '__main__':
