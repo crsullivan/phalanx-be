@@ -8,7 +8,7 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'db.sqlite')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'phalanx.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFIACTIONS'] = False
 # Initialize Db
 db = SQLAlchemy(app)
@@ -35,10 +35,11 @@ class Needs(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    def __init__(self, need_name, need_frequency, need_quantity):
+    def __init__(self, need_name, need_frequency, need_quantity, user_id):
         self.need_name = need_name
         self.need_frequency = need_frequency
         self.need_quantity = need_quantity
+        self.user_id = user_id
 
 class Supplies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -52,13 +53,15 @@ class Supplies(db.Model):
     need_id = db.Column(db.Integer, db.ForeignKey('needs.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    def __init__(self, supply_name, supply_quantity, supply_frequency, supply_fail_rate, supply_life_cycle, need_demand_per_life_cycle):
+    def __init__(self, supply_name, supply_quantity, supply_frequency, supply_fail_rate, supply_life_cycle, need_demand_per_life_cycle, need_id, user_id):
         self.supply_name = supply_name
         self.supply_quantity = supply_quantity
         self.supply_frequency = supply_frequency
         self.supply_fail_rate = supply_fail_rate
         self.supply_life_cycle = supply_life_cycle
         self.need_demand_per_life_cycle = need_demand_per_life_cycle
+        self.need_id = need_id
+        self.user_id = user_id
 
 # Schemas
 class UserSchema(ma.Schema):
@@ -82,6 +85,53 @@ needs_schema = NeedsSchema(many=True,)
 
 supply_schema = SupplySchema()
 supplies_schema = SupplySchema(many=True,)
+
+# Create POST Endpoints
+@app.route('/users', methods=['POST'])
+def add_user():
+    name = request.json['name']
+    username = request.json['username']
+    password = request.json['password']
+
+    new_user = Users(name, username, password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return user_schema.jsonify(new_user)
+
+@app.route('/needs', methods=['POST'])
+def add_need():
+    need_name = request.json['need_name']
+    need_frequency = request.json['need_frequency']
+    need_quantity = request.json['need_quantity']
+    user_id = request.json['user_id']
+
+    new_need = Needs(need_name, need_frequency, need_quantity, user_id)
+
+    db.session.add(new_need)
+    db.session.commit()
+
+    return user_schema.jsonify(new_need)
+
+@app.route('/supplies', methods=['POST'])
+def add_supply():
+    supply_name = request.json['supply_name']
+    supply_quantity = request.json['supply_quantity']
+    supply_frequency = request.json['supply_frequency']
+    supply_fail_rate = request.json['supply_fail_rate']
+    supply_life_cycle = request.json['supply_life_cycle']
+    need_demand_per_life_cycle = request.json['need_demand_per_life_cycle']
+    need_id = request.json['need_id']
+    user_id = request.json['user_id']
+
+    new_supply = Supplies(supply_name, supply_quantity, supply_frequency, supply_fail_rate, supply_life_cycle, need_demand_per_life_cycle, need_id, user_id,)
+
+    db.session.add(new_supply)
+    db.session.commit()
+
+    return user_schema.jsonify(new_supply)
+
 
 # run server
 if __name__ == '__main__':
