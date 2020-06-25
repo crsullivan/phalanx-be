@@ -61,7 +61,27 @@ class Supplies(db.Model):
         self.need_demand_per_life_cycle = need_demand_per_life_cycle
 
 # Schemas
+class UserSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'name', 'username', 'password')
 
+class NeedsSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'need_name', 'need_frequency', 'need_quantity', 'user_id')
+
+class SupplySchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'supply_name', 'supply_quantity', 'supply_frequency', 'supply_fail_rate', 'supply_life_cycle', 'need_demand_per_life_cycle', 'need_id', 'user_id')
+
+# Initialize Schema
+user_schema = UserSchema()
+users_schema = UserSchema(many=True,)
+
+need_schema = NeedsSchema()
+needs_schema = NeedsSchema(many=True,)
+
+supply_schema = SupplySchema()
+supplies_schema = SupplySchema(many=True,)
 
 # run server
 if __name__ == '__main__':
