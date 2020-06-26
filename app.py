@@ -1,13 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from flask_dotenv import DotEnv, load_DotEnv
 import os
+import jwt
+import datetime 
 
 # Initialize app
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Database
+app.config['SECRET_KEY'] = 'keepitsecretkeepitsafe'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'phalanx.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFIACTIONS'] = False
 # Initialize Db
@@ -44,8 +48,8 @@ class Needs(db.Model):
 class Supplies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supply_name = db.Column(db.String(50), nullable=False)
-    supply_quantity = db.Column(db.String(50), nullable=False)
-    supply_frequency = db.Column(db.String(50), nullable=False)
+    supply_quantity = db.Column(db.Integer, nullable=False)
+    supply_frequency = db.Column(db.Integer, nullable=False)
     supply_fail_rate = db.Column(db.Integer, nullable=False)
     supply_life_cycle = db.Column(db.Integer, nullable=False)
     need_demand_per_life_cycle = db.Column(db.Integer, nullable=False)
@@ -87,7 +91,7 @@ supply_schema = SupplySchema()
 supplies_schema = SupplySchema(many=True,)
 
 # Create POST Endpoints
-@app.route('/users', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def add_user():
     name = request.json['name']
     username = request.json['username']
@@ -99,6 +103,20 @@ def add_user():
     db.session.commit()
 
     return user_schema.jsonify(new_user)
+
+@app.route('/login', methods=['POST'])
+def login_user():
+    auth = request.authorization
+
+    if auth and auth.password == 'password' & auth and auth.username == 'username':
+        token = jwt.encode({'user': auth.username})
+    return make_response('Could not verify User', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+    this_user = Users(name, username, password)
+
+    db.session.commit()
+
+    return user_schema.jsonify(this_user)
 
 @app.route('/needs', methods=['POST'])
 def add_need():
