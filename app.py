@@ -6,6 +6,7 @@ import os
 import jwt
 import datetime 
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 # Initialize app
 app = Flask(__name__)
@@ -69,6 +70,29 @@ class Supplies(db.Model):
         self.need_id = need_id
         self.user_id = user_id
 
+
+# Decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token']
+
+        if not token:
+            return jsonify({'message': 'Token is missing'}), 401
+
+        try: 
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+            current_user = Users.query.filter_by(username=data['username']).first()
+        except:
+            return jsonify({'message': 'Token is invalid'}),401
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated
+
 # Schemas
 class UserSchema(ma.Schema):
     class Meta:
@@ -108,22 +132,28 @@ def add_user():
 
     return user_schema.jsonify(new_user)
 
-@app.route('/login', methods=['POST'])
+@app.route('/login')
 def login_user():
     auth = request.authorization
 
-    if auth and auth.password == 'password' & auth and auth.username == 'username':
-        token = jwt.encode({'user': auth.username})
-    return make_response('Could not verify User', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
+    if not auth or not auth.username or not auth.password:
+        return make_response('Credentials Missing', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
-    this_user = Users(name, username, password)
+    user = Users.query.filter_by(username=auth.username).first()
 
-    db.session.commit()
+    if not user:
+        return jsonify({'message': f"User '{user.username}' not found."})
 
-    return user_schema.jsonify(this_user)
+    if check_password_hash(user.password, auth.password):
+        token = jwt.encode({'name': user.name, 'id': user.id, 'username': user.username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60)}, app.config['SECRET_KEY'])
+
+        return jsonify({'Welcome': f"{user.name}", 'token': token.decode('UTF-8')})
+
+    return make_response('Credentials invalid', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 @app.route('/needs', methods=['POST'])
-def add_need():
+@token_required
+def add_need(current_user):
     need_name = request.json['need_name']
     need_frequency = request.json['need_frequency']
     need_quantity = request.json['need_quantity']
@@ -137,7 +167,8 @@ def add_need():
     return need_schema.jsonify(new_need)
 
 @app.route('/supplies', methods=['POST'])
-def add_supply():
+@token_required
+def add_supply(current_user):
     supply_name = request.json['supply_name']
     supply_quantity = request.json['supply_quantity']
     supply_frequency = request.json['supply_frequency']
@@ -157,14 +188,16 @@ def add_supply():
 ####################################################################### Create GET Endpoints
 # All Users
 @app.route('/users', methods=['GET'])
-def get_users():
+@token_required
+def get_users(current_user):
     all_users = Users.query.all()
     result = users_schema.dump(all_users)
     return jsonify(result)
 
 # One User
 @app.route('/users/<user_id>', methods=['GET'])
-def get_one_user(user_id):
+@token_required
+def get_one_user(current_user, user_id):
     single_user = Users.query.filter_by(id=user_id).first()
     if not single_user:
         return jsonify({'message': 'No user found'})
@@ -173,21 +206,24 @@ def get_one_user(user_id):
 
 # All Needs
 @app.route('/needs', methods=['GET'])
-def get_needs():
+@token_required
+def get_needs(current_user):
     all_needs = Needs.query.all()
     result = needs_schema.dump(all_needs)
     return jsonify(result)
 
 # All Supplies
 @app.route('/supplies', methods=['GET'])
-def get_supplies():
+@token_required
+def get_supplies(current_user):
     all_supplies = Supplies.query.all()
     result = supplies_schema.dump(all_supplies)
     return jsonify(result)
 
 ####################################################################### Create DEL Endpoints
 @app.route('/users/<user_id>', methods=['DELETE'])
-def delete_user(user_id):
+@token_required
+def delete_user(current_user, user_id):
     single_user = Users.query.filter_by(id=user_id).first()
     if not single_user:
         return jsonify({'message': 'No user found'})
@@ -196,7 +232,8 @@ def delete_user(user_id):
     return jsonify({'message': f"User '{single_user.username}' deleted."}) 
 
 @app.route('/needs/<need_id>', methods=['DELETE'])
-def delete_need(need_id):
+@token_required
+def delete_need(current_user, need_id):
     single_need = Needs.query.filter_by(id=need_id).first()
     if not single_need:
         return jsonify({'message': 'No need found'})
@@ -205,7 +242,8 @@ def delete_need(need_id):
     return jsonify({'message': f"Need '{single_need.need_name}' deleted."}) 
 
 @app.route('/supplies/<supply_id>', methods=['DELETE'])
-def delete_supply(supply_id):
+@token_required
+def delete_supply(current_user, supply_id):
     single_supply = Supplies.query.filter_by(id=supply_id).first()
     if not single_supply:
         return jsonify({'message': 'No supply found'})

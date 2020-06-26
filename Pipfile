@@ -10,8 +10,8 @@ flask = "*"
 flask-sqlalchemy = "*"
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
-jwt = "*"
 flask-dotenv = "*"
+pyjwt = "*"
 
 [requires] 
 python_version = "3.8"
