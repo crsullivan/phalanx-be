@@ -50,7 +50,7 @@ class Needs(db.Model):
 
 class Supplies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    supply_name = db.Column(db.String(50), nullable=False)
+    supply_name = db.Column(db.String (50), nullable=False)
     supply_quantity = db.Column(db.Integer, nullable=False)
     supply_frequency = db.Column(db.Integer, nullable=False)
     supply_fail_rate = db.Column(db.Integer, nullable=False)
@@ -212,13 +212,30 @@ def get_needs(current_user):
     result = needs_schema.dump(all_needs)
     return jsonify(result)
 
+# Needs by User
+@app.route('/needs/<user_id>', methods=['GET'])
+@token_required
+def get_users_needs(current_user, user_id):
+    users_needs = Needs.query.filter_by(user_id=user_id)
+    result = needs_schema.dump(users_needs)
+    return jsonify(result)
+
 # All Supplies
+@app.route('/supplies/<user_id>', methods=['GET'])
+@token_required
+def get_users_supplies(current_user, user_id):
+    users_supplies = Supplies.query.filter_by(user_id=user_id)
+    result = supplies_schema.dump(users_supplies)
+    return jsonify(result)
+
+# Supplies by User
 @app.route('/supplies', methods=['GET'])
 @token_required
 def get_supplies(current_user):
     all_supplies = Supplies.query.all()
     result = supplies_schema.dump(all_supplies)
     return jsonify(result)
+
 
 ####################################################################### Create DEL Endpoints
 @app.route('/users/<user_id>', methods=['DELETE'])
