@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from flask_dotenv import DotEnv, load_DotEnv
+from flask_dotenv import DotEnv
 import os
 import jwt
 import datetime 
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Initialize app
 app = Flask(__name__)
@@ -14,6 +15,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = 'keepitsecretkeepitsafe'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'phalanx.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFIACTIONS'] = False
+
 # Initialize Db
 db = SQLAlchemy(app)
 # Initialize ma
@@ -90,14 +92,16 @@ needs_schema = NeedsSchema(many=True,)
 supply_schema = SupplySchema()
 supplies_schema = SupplySchema(many=True,)
 
-# Create POST Endpoints
+####################################################################### Create POST Endpoints
 @app.route('/register', methods=['POST'])
 def add_user():
     name = request.json['name']
     username = request.json['username']
     password = request.json['password']
 
-    new_user = Users(name, username, password)
+    hashed_password = generate_password_hash(password, method='sha256')
+
+    new_user = Users(name, username, password=hashed_password)
 
     db.session.add(new_user)
     db.session.commit()
@@ -150,24 +154,66 @@ def add_supply():
 
     return supply_schema.jsonify(new_supply)
 
-# Create GET Endpoints
+####################################################################### Create GET Endpoints
+# All Users
 @app.route('/users', methods=['GET'])
 def get_users():
     all_users = Users.query.all()
     result = users_schema.dump(all_users)
     return jsonify(result)
 
+# One User
+@app.route('/users/<user_id>', methods=['GET'])
+def get_one_user(user_id):
+    single_user = Users.query.filter_by(id=user_id).first()
+    if not single_user:
+        return jsonify({'message': 'No user found'})
+    print(single_user.name)
+    return user_schema.jsonify(single_user)
+
+# All Needs
 @app.route('/needs', methods=['GET'])
 def get_needs():
     all_needs = Needs.query.all()
     result = needs_schema.dump(all_needs)
     return jsonify(result)
 
+# All Supplies
 @app.route('/supplies', methods=['GET'])
 def get_supplies():
     all_supplies = Supplies.query.all()
     result = supplies_schema.dump(all_supplies)
     return jsonify(result)
+
+####################################################################### Create DEL Endpoints
+@app.route('/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    single_user = Users.query.filter_by(id=user_id).first()
+    if not single_user:
+        return jsonify({'message': 'No user found'})
+    db.session.delete(single_user)
+    db.session.commit()
+    return jsonify({'message': f"User '{single_user.username}' deleted."}) 
+
+@app.route('/needs/<need_id>', methods=['DELETE'])
+def delete_need(need_id):
+    single_need = Needs.query.filter_by(id=need_id).first()
+    if not single_need:
+        return jsonify({'message': 'No need found'})
+    db.session.delete(single_need)
+    db.session.commit()
+    return jsonify({'message': f"Need '{single_need.need_name}' deleted."}) 
+
+@app.route('/supplies/<supply_id>', methods=['DELETE'])
+def delete_supply(supply_id):
+    single_supply = Supplies.query.filter_by(id=supply_id).first()
+    if not single_supply:
+        return jsonify({'message': 'No supply found'})
+    db.session.delete(single_supply)
+    db.session.commit()
+    return jsonify({'message': f"Supply '{single_supply.supply_name}' deleted."}) 
+
+####################################################################### Create PUT Endpoints
 
 # run server
 if __name__ == '__main__':
