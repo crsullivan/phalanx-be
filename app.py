@@ -186,6 +186,11 @@ def add_supply(current_user):
     return supply_schema.jsonify(new_supply)
 
 ####################################################################### Create GET Endpoints
+# Test
+@app.route('/alive', methods=['GET'])
+def check():
+    return 'Its Alive!!!!!!!'
+
 # All Users
 @app.route('/users', methods=['GET'])
 @token_required
