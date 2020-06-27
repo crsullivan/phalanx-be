@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from flask_dotenv import DotEnv
+# from python_dotenv import DotEnv
 import os
 import jwt
 import datetime 
@@ -13,7 +13,7 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Database
-app.config['SECRET_KEY'] = 'keepitsecretkeepitsafe'
+app.config['SECRET_KEY'] = os.getenv('ACCESS_TOKEN_SECRET')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'phalanx.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFIACTIONS'] = False
 

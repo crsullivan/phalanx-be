@@ -12,6 +12,7 @@ flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 flask-dotenv = "*"
 pyjwt = "*"
+python-dotenv = "*"
 
 [requires] 
 python_version = "3.8"
